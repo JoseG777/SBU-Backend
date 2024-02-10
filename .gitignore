@@ -130,3 +130,5 @@ dist
 .pnp.*
 
 GOOGLE_CLOUD_KEY.json
+
+.DS_Store
