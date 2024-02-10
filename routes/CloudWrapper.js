@@ -1,4 +1,8 @@
 // Imports
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const { v4: uuidv4 } = require('uuid'); 
 const express = require('express');
 const vision = require('@google-cloud/vision');
 const { readFileSync } = require('fs');
@@ -55,23 +59,33 @@ const constrained = (object_box, text_box, scale_w = 1, scale_h = 1) => {
 // Test Call to Test API
 router.post('/analyze-image', async (req, res) => {
     const { image: base64Image } = req.body; // Here, 'image' is the base64-encoded image data
-    
-    // Convert base64 to a buffer
+
+    // Convert base64 to a buffer and then to a file
     const imageBuffer = Buffer.from(base64Image, 'base64');
-  
+    const tempFileName = uuidv4() + '.jpg'; // Generate a unique file name
+    const tempFilePath = path.join(os.tmpdir(), tempFileName); // Construct temp file path
+
+    fs.writeFileSync(tempFilePath, imageBuffer); // Write file to temp directory
+
     try {
-      const results = await client.objectLocalization({
-        image: { content: imageBuffer },
-      });
-      
-      // ... rest of your processing logic
-  
-      res.json({ message: 'Analysis completed', data: results });
+        // Now use tempFilePath with your Google Vision API call
+        let textOnBottle = await bottle_text(tempFilePath); // Assuming this function is modified to use filePath
+
+        // Optionally, delete the temp file after processing
+        fs.unlinkSync(tempFilePath);
+
+        // Respond with your results
+        res.json({ message: 'Analysis completed', data: textOnBottle });
     } catch (error) {
-      console.error('Error processing image:', error);
-      res.status(500).json({ message: 'Error processing image', error: error.message });
+        console.error('Error processing image:', error);
+        res.status(500).json({ message: 'Error processing image', error: error.message });
+
+        // Ensure temp file is deleted even on error
+        if (fs.existsSync(tempFilePath)) {
+            fs.unlinkSync(tempFilePath);
+        }
     }
-  });
+});
   
 
 
