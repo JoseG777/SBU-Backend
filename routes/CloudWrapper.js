@@ -266,15 +266,17 @@ router.post('/analyze-image', async (req, res) => {
         const mp3_file = uuidv4() + '.mp3'; // Generate a unique file name
         // const mp3TempFilePath = path.join(os.tmpdir(), mp3_file); // Construct temp file path
         const mp3TempFilePath = path.join("public/", mp3_file); // Construct temp file path
-
         read_text(default_info,voice_options["english"]["f"],mp3TempFilePath); // TEST THIS FIRST
+
+        const sound_url = 'http://localhost:3007/'+ mp3_file;
+        console.log(sound_url);
         
 
 
         // fs.writeFileSync(mp3TempFilePath, imageBuffer); // Write file to temp directory
 
-
-        res.json({ message: 'Analysis completed', data: default_info, sound: mp3TempFilePath });
+        console.log(mp3TempFilePath)
+        res.json({ message: 'Analysis completed', data: default_info, sound: sound_url });
 
     } catch (error) {
         console.error('Error processing image:', error);
