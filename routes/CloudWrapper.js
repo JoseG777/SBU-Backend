@@ -1,9 +1,15 @@
 // Imports
+const express = require('express');
 const vision = require('@google-cloud/vision');
 const { readFileSync } = require('fs');
-
-const CREDENTIALS = JSON.parse(readFileSync('./idyllic-axe-413900-58380517b6a4.json'));
+const bodyParser = require('body-parser');
 const sizeOf = require('image-size');
+const router = express();
+
+router.use(bodyParser.json({ limit: '100mb' }));
+router.use(bodyParser.urlencoded({ limit: '100mb', extended: true }));
+
+const CREDENTIALS = JSON.parse(readFileSync('GOOGLE_CLOUD_KEY.json'));
 
 // Cloud Keys & Client
 const CONFIG = {
@@ -15,6 +21,7 @@ const CONFIG = {
 
 const client = new vision.ImageAnnotatorClient(CONFIG);
 
+
 /**
  * 
  * @param {boundingPoly} object_box of the main object
@@ -23,6 +30,8 @@ const client = new vision.ImageAnnotatorClient(CONFIG);
  * @param {int} scale_h image height (y)
  * @returns boolean, true if text box is contained within object box; false otherwise
  */
+
+
 const constrained = (object_box, text_box, scale_w = 1, scale_h = 1) => {
     const o_x1 = object_box[0].x * scale_w;
     const o_y1 = object_box[0].y * scale_h;
@@ -44,14 +53,29 @@ const constrained = (object_box, text_box, scale_w = 1, scale_h = 1) => {
 };
 
 // Test Call to Test API
-const test_call = async (file_path) => {
-    const request = {
-        image: { content: readFileSync(file_path) },
-    };
-    const [locali_result] = await client.objectLocalization(request);
-    const objects = locali_result.localizedObjectAnnotations;
-    return objects;
-}
+router.post('/analyze-image', async (req, res) => {
+    const { image: base64Image } = req.body; // Here, 'image' is the base64-encoded image data
+    
+    // Convert base64 to a buffer
+    const imageBuffer = Buffer.from(base64Image, 'base64');
+  
+    try {
+      const results = await client.objectLocalization({
+        image: { content: imageBuffer },
+      });
+      
+      // ... rest of your processing logic
+  
+      res.json({ message: 'Analysis completed', data: results });
+    } catch (error) {
+      console.error('Error processing image:', error);
+      res.status(500).json({ message: 'Error processing image', error: error.message });
+    }
+  });
+  
+
+
+
 
 /**
  * 
@@ -110,15 +134,14 @@ const bottle_text = async (file_path) => {
     });
     // console.log(compiled_text);
     return compiled_text;
-
-
-
 }
 
+/*
 async function main(){
     (async () => {
         console.log(await test_call('IMG_20240209_192442.jpg'));
     })();
 }
+*/
 
-// main()
+module.exports = router;
