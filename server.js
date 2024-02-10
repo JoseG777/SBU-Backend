@@ -1,6 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-const googleAIRoutes = require('./routes/GeminiAPI');
+// const googleAIRoutes = require('./routes/GeminiAPI');
 const visionAIRoute = require('./routes/CloudWrapper');
 // const openAIWrapper = require('./routes/OpenAIWrapper');
 
@@ -13,7 +13,7 @@ app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ limit: '100mb', extended: true }));
 
 // Mounting the routes
-app.use('/google/generateContent', googleAIRoutes);
+// app.use('/google/generateContent', googleAIRoutes);
 app.use('/vision', visionAIRoute);
 // app.use('/OpenAI', openAIWrapper);
 

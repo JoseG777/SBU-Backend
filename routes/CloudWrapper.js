@@ -1,3 +1,6 @@
+//Node files Wrapper
+const oai = require('./OpenAIWrapper');
+
 // Imports
 const fs = require('fs');
 const os = require('os');
@@ -9,6 +12,7 @@ const { readFileSync } = require('fs');
 const bodyParser = require('body-parser');
 const sizeOf = require('image-size');
 const router = express();
+
 
 router.use(bodyParser.json({ limit: '100mb' }));
 router.use(bodyParser.urlencoded({ limit: '100mb', extended: true }));
@@ -75,7 +79,9 @@ router.post('/analyze-image', async (req, res) => {
         fs.unlinkSync(tempFilePath);
 
         // Respond with your results
-        res.json({ message: 'Analysis completed', data: textOnBottle });
+        default_info = await oai.bottle_query(textOnBottle)
+        res.json({ message: 'Analysis completed', data: default_info });
+
     } catch (error) {
         console.error('Error processing image:', error);
         res.status(500).json({ message: 'Error processing image', error: error.message });
