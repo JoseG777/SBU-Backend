@@ -1,10 +1,9 @@
 const express = require('express');
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = 3007;
 
-app.get('/', (req, res) => {
-  res.send('Hello World!');
-});
+const googleAIRoutes = require('./routes/GeminiAPI');
+app.use('/google/generateContent', googleAIRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
