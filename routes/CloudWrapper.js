@@ -1,11 +1,23 @@
-const OpenAI = require('openai');
-const { readFileSync } = require('fs');
+// Imports
 
+const tts = require('@google-cloud/text-to-speech');
+const { readFileSync } = require('fs');
+const util = require('util');
+const fs = require('fs');
+const OpenAI = require('openai');
+const os = require('os');
+const path = require('path');
+const { v4: uuidv4 } = require('uuid');
+const express = require('express');
+const vision = require('@google-cloud/vision');
+const bodyParser = require('body-parser');
+const sizeOf = require('image-size');
+const router = express();
 require('dotenv').config();
 CREDENTIALS_OAI = process.env.OPENAI_KEY;
 const openai = new OpenAI({apiKey:CREDENTIALS_OAI});
 
-
+// OPEN AI IMPLEMENTATION STARTS HERE * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * 
 /**
  * 
  * @param {string} bottle_text text on the medical bottle
@@ -37,22 +49,11 @@ async function bottle_query(bottle_text) {
     const prompt_engineering = "The following is the label of a medicinal bottle or product. Explain what this medication is used for and any important information about its usage."
     return basic_query(bottle_text,prompt_engineering);
 };
+// OPEN AI IMPLEMENTATION ENDS HERE * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * 
 
 
 
-
-// Imports
-const fs = require('fs');
-const os = require('os');
-const path = require('path');
-const { v4: uuidv4 } = require('uuid'); 
-const express = require('express');
-const vision = require('@google-cloud/vision');
-// const { readFileSync } = require('fs');
-const bodyParser = require('body-parser');
-const sizeOf = require('image-size');
-const router = express();
-
+// VISION AI IMPLEMENTATION STARTS HERE * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * 
 
 router.use(bodyParser.json({ limit: '100mb' }));
 router.use(bodyParser.urlencoded({ limit: '100mb', extended: true }));
@@ -67,7 +68,7 @@ const CONFIG = {
     }
 };
 
-const client = new vision.ImageAnnotatorClient(CONFIG);
+const client_text = new vision.ImageAnnotatorClient(CONFIG);
 
 
 /**
@@ -100,43 +101,6 @@ const constrained = (object_box, text_box, scale_w = 1, scale_h = 1) => {
 
 };
 
-// Test Call to Test API
-router.post('/analyze-image', async (req, res) => {
-    const { image: base64Image } = req.body; // Here, 'image' is the base64-encoded image data
-
-    // Convert base64 to a buffer and then to a file
-    const imageBuffer = Buffer.from(base64Image, 'base64');
-    const tempFileName = uuidv4() + '.jpg'; // Generate a unique file name
-    const tempFilePath = path.join(os.tmpdir(), tempFileName); // Construct temp file path
-
-    fs.writeFileSync(tempFilePath, imageBuffer); // Write file to temp directory
-
-    try {
-        // Now use tempFilePath with your Google Vision API call
-        let textOnBottle = await bottle_text(tempFilePath); // Assuming this function is modified to use filePath
-
-        // Optionally, delete the temp file after processing
-        fs.unlinkSync(tempFilePath);
-
-        // Respond with your results
-        default_info = await bottle_query(textOnBottle)
-        res.json({ message: 'Analysis completed', data: default_info });
-
-    } catch (error) {
-        console.error('Error processing image:', error);
-        res.status(500).json({ message: 'Error processing image', error: error.message });
-
-        // Ensure temp file is deleted even on error
-        if (fs.existsSync(tempFilePath)) {
-            fs.unlinkSync(tempFilePath);
-        }
-    }
-});
-  
-
-
-
-
 /**
  * 
  * @param {string} file_path to the image
@@ -145,14 +109,14 @@ router.post('/analyze-image', async (req, res) => {
 const bottle_text = async (file_path) => {
 
     // Detect text from given image and grab annotations
-    let [text_result] = await client.textDetection(file_path);
+    let [text_result] = await client_text.textDetection(file_path);
     text_result = text_result.textAnnotations
 
     const request = {
         image: { content: readFileSync(file_path) },
     };
 
-    const [locali_result] = await client.objectLocalization(request);
+    const [locali_result] = await client_text.objectLocalization(request);
     const objects = locali_result.localizedObjectAnnotations;
 
     let packaged = null;
@@ -195,6 +159,133 @@ const bottle_text = async (file_path) => {
     // console.log(compiled_text);
     return compiled_text;
 }
+// VISION AI IMPLEMENTATION ENDS HERE * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * 
+
+// TTS AI IMPLEMENTATION STARTS HERE * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * 
+const client_tts = new tts.TextToSpeechClient(CONFIG);
+
+const voice_options = {
+    "english": {
+        "m": {
+            "languageCode": [
+                "en-US"
+            ],
+            "name": "en-US-Journey-D",
+            "ssmlGender": "MALE",
+            "naturalSampleRateHertz": 24000
+        },
+        "f": {
+            "languageCode": [
+                "en-US"
+            ],
+            "name": "en-US-Journey-F",
+            "ssmlGender": "FEMALE",
+            "naturalSampleRateHertz": 24000
+        }
+    },
+    "spanish": {
+        "m": {
+            "languageCode": [
+                "es-US"
+            ],
+            "name": "es-US-Neural2-C",
+            "ssmlGender": "MALE",
+            "naturalSampleRateHertz": 24000
+        },
+        "f": {
+            "languageCode": [
+                "es-US"
+            ],
+            "name": "es-US-Neural2-A",
+            "ssmlGender": "FEMALE",
+            "naturalSampleRateHertz": 24000
+        }
+    },
+    "russian": {
+        "f": {
+            "languageCode": [
+                "ru-RU"
+            ],
+            "name": "ru-RU-Standard-A",
+            "ssmlGender": "FEMALE",
+            "naturalSampleRateHertz": 24000
+        },
+        "m": {
+            "languageCode": [
+                "ru-RU"
+            ],
+            "name": "ru-RU-Standard-B",
+            "ssmlGender": "MALE",
+            "naturalSampleRateHertz": 24000
+        }
+    }
+}
+
+async function read_text(text, voice = { languageCode: 'en-US', ssmlGender: 'NEUTRAL' }, file_location = 'output.mp3') {
+
+    // Construct the request
+    const request = {
+        input: { text: text },
+        // Select the language and SSML voice gender (optional)
+        voice: voice,
+        // select the type of audio encoding
+        audioConfig: { audioEncoding: 'MP3' },
+    };
+
+    // Performs the text-to-speech request
+    const [response] = await client_tts.synthesizeSpeech(request);
+    // Write the binary audio content to a local file
+    const writeFile = util.promisify(fs.writeFile);
+    await writeFile(file_location, response.audioContent, 'binary');
+    console.log('Audio content written to file: output.mp3');
+}
+
+// TTS AI IMPLEMENTATION ENDS HERE * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * 
+
+
+// Test Call to Test API
+router.post('/analyze-image', async (req, res) => {
+    const { image: base64Image } = req.body; // Here, 'image' is the base64-encoded image data
+
+    // Convert base64 to a buffer and then to a file
+    const imageBuffer = Buffer.from(base64Image, 'base64');
+    const tempFileName = uuidv4() + '.jpg'; // Generate a unique file name
+    const tempFilePath = path.join(os.tmpdir(), tempFileName); // Construct temp file path
+
+    fs.writeFileSync(tempFilePath, imageBuffer); // Write file to temp directory
+
+    try {
+        // Now use tempFilePath with your Google Vision API call
+        let textOnBottle = await bottle_text(tempFilePath); // Assuming this function is modified to use filePath
+
+        // Optionally, delete the temp file after processing
+        fs.unlinkSync(tempFilePath);
+
+        // Respond with your results
+        default_info = await bottle_query(textOnBottle)
+        const mp3_file = uuidv4() + '.mp3'; // Generate a unique file name
+        // const mp3TempFilePath = path.join(os.tmpdir(), mp3_file); // Construct temp file path
+        const mp3TempFilePath = path.join("public/", mp3_file); // Construct temp file path
+
+        read_text(default_info,voice_options["english"]["f"],mp3TempFilePath); // TEST THIS FIRST
+
+
+
+        // fs.writeFileSync(mp3TempFilePath, imageBuffer); // Write file to temp directory
+
+
+        res.json({ message: 'Analysis completed', data: default_info });
+
+    } catch (error) {
+        console.error('Error processing image:', error);
+        res.status(500).json({ message: 'Error processing image', error: error.message });
+
+        // Ensure temp file is deleted even on error
+        if (fs.existsSync(tempFilePath)) {
+            fs.unlinkSync(tempFilePath);
+        }
+    }
+});
 
 /*
 async function main(){
