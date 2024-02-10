@@ -268,13 +268,13 @@ router.post('/analyze-image', async (req, res) => {
         const mp3TempFilePath = path.join("public/", mp3_file); // Construct temp file path
 
         read_text(default_info,voice_options["english"]["f"],mp3TempFilePath); // TEST THIS FIRST
-
+        
 
 
         // fs.writeFileSync(mp3TempFilePath, imageBuffer); // Write file to temp directory
 
 
-        res.json({ message: 'Analysis completed', data: default_info });
+        res.json({ message: 'Analysis completed', data: default_info, sound: mp3TempFilePath });
 
     } catch (error) {
         console.error('Error processing image:', error);
