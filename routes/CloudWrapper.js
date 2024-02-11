@@ -290,7 +290,7 @@ async function read_text(text, voice = { languageCode: 'en-US', ssmlGender: 'NEU
 
 // Test Call to Test API
 router.post('/analyze-image', async (req, res) => {
-    const { image: base64Image, language:language_val } = req.body; // Here, 'image' is the base64-encoded image data
+    const { image: base64Image, language:language_val, jwt_token: j_token } = req.body; // Here, 'image' is the base64-encoded image data
 
     // Convert base64 to a buffer and then to a file
     const imageBuffer = Buffer.from(base64Image, 'base64');
@@ -313,10 +313,18 @@ router.post('/analyze-image', async (req, res) => {
         // });
         let default_info = null;
         let medicals = "";
-        if(user){
-            medicals = await user.getMedicals();
+        if(j_token!=""){
+            try {
+                const decoded = jwt.verify(token, process.env.JWT_SECRET);
+                user = decoded.userId;
+                console.log(user);
+                medicals = await user.getMedicals();
+                next();
+            } catch (error) {
+                res.status(401).json({ error: 'Invalid token' });
+            };
+        };
             
-        }
 
 
 
@@ -332,9 +340,9 @@ router.post('/analyze-image', async (req, res) => {
         }
         else{
             if(medicals != ""){
-                let med_prompt = "The following text is the label of a medicinal bottle or product. Briefly answer the following questions:\n 1. What is this medication and what is it used for?\n 2. What should someone taking this medication be aware of?\n 3. How often should this person take this medication? 4. How may this medication affect the user based on medical notes?"
+                let med_prompt = "The following text is the label of a medicinal bottle or product. Briefly answer the following questions:\n 1. What is this medication and what is it used for?\n 2. What should someone taking this medication be aware of?\n 3. How often should this person take this medication? 4. How may this medication affect the user based on their medical info?"
                 med_prompt = "The following is user information regarding prescription and doctor notes respectively:\n" + medicals.prescription + "\n" + medicals.notes + "\n\n" + med_prompt
-                default_info = await basic_query(textOnBottle, language = language_val);
+                default_info = await basic_query(med_prompt, language = language_val);
             }
             else{
                 default_info = await basic_query(textOnBottle, language = language_val);
