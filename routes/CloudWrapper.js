@@ -269,7 +269,7 @@ router.post('/analyze-image', async (req, res) => {
         const mp3TempFilePath = path.join("public/", mp3_file); // Construct temp file path
         await read_text(default_info, voice_options[language]["f"],mp3TempFilePath); // TEST THIS FIRST
 
-        const sound_url = 'http://localhost:3007/'+ mp3_file;
+        const sound_url =  mp3_file;
         console.log(sound_url);
         
 

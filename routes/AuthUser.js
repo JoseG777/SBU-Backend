@@ -9,8 +9,8 @@ const router = express.Router();
 
 router.post('/signup', async (req, res) => {
     try {
-      const { username, email, password } = req.body;
-      const user = new User({ username, email, password });
+      const { username, password } = req.body;
+      const user = new User({ username, password });
       await user.save();
       const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET , { expiresIn: '1h' });
       res.status(201).json({ token });
@@ -23,7 +23,7 @@ router.post('/signin', async (req, res) => {
     try {
         const { login, password } = req.body;
         const user = await User.findOne({
-            $or: [{ email: login }, { username: login }]
+            $or: [{ username: login }]
         });
 
         if (!user) {
