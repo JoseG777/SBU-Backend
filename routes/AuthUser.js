@@ -10,14 +10,25 @@ const router = express.Router();
 router.post('/signup', async (req, res) => {
     try {
       const { username, password } = req.body;
+      // Check if the user already exists
+      const existingUser = await User.findOne({ username });
+      if (existingUser) {
+        return res.status(409).json({ message: 'Username already exists' });
+      }
       const user = new User({ username, password });
       await user.save();
-      const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET , { expiresIn: '1h' });
+      const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
       res.status(201).json({ token });
     } catch (error) {
-      res.status(400).json({ message: error.message });
+      if (error.code === 11000) {
+        // Handle duplicate key error
+        res.status(409).json({ message: 'A user with the given username already exists.' });
+      } else {
+        res.status(400).json({ message: error.message });
+      }
     }
-});
+  });
+  
   
 router.post('/signin', async (req, res) => {
     try {
