@@ -5,6 +5,9 @@ const userSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   
+  prescription_info: { type: String, required: false },
+  doctor_notes: { type: String, required: false }
+
   // email: { type: String, required: true, unique: true },
 });
 
@@ -17,6 +20,10 @@ userSchema.pre('save', async function(next) {
 //compare the password entered by the user with the hashed password in the database when logging in
 userSchema.methods.comparePassword = async function(candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password);
+};
+
+userSchema.methods.getMedicals = async function () {
+  return {prescription : this.prescription_info, notes:this.doctor_notes};
 };
 
 const User = mongoose.model('User', userSchema);

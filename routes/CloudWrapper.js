@@ -17,7 +17,28 @@ require('dotenv').config();
 CREDENTIALS_OAI = process.env.OPENAI_KEY;
 const openai = new OpenAI({apiKey:CREDENTIALS_OAI});
 
+const jwt = require('jsonwebtoken');
+const User = require('../models/User');
+
+
 // OPEN AI IMPLEMENTATION STARTS HERE * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * 
+async function translate(prompt, language = "english") {
+    if(language="english"){
+        return prompt;
+    }
+    const response = await openai.chat.completions.create({
+        messages: [{ "role": "system", "content": "Translate the following from English to " + language + "." },
+        { "role": "user", "content": prompt }
+        ],
+        model: "gpt-3.5-turbo",
+    });
+
+    // const response = await openai.chat.completions.create({
+    //     model: 'gpt-3.5-turbo',
+    //     prompt: prompt_engineering + "\n" + bottle_text
+    // });
+    return response['choices'][0].message.content;
+};
 /**
  * 
  * @param {string} bottle_text text on the medical bottle
@@ -25,7 +46,7 @@ const openai = new OpenAI({apiKey:CREDENTIALS_OAI});
  * @returns response from gpt3.5turbo
  */
 const default_prompt = "The following is the label of a medicinal bottle or product. Briefly answer the following questions:\n 1. What is this medication and what is it used for?\n 2. What should someone taking this medication be aware of?\n 3. How often should this person take this medication?"
-async function basic_query(bottle_text, language = "English", prompt_engineering = default_prompt) {
+async function basic_query(bottle_text, language = "english", prompt_engineering = default_prompt) {
 
     const response = await openai.chat.completions.create({
         messages: [{ "role": "system", "content": "You are a medical assistant who speaks" + language +"." },
@@ -258,12 +279,44 @@ router.post('/analyze-image', async (req, res) => {
     try {
         // Now use tempFilePath with your Google Vision API call
         let textOnBottle = await bottle_text(tempFilePath); // Assuming this function is modified to use filePath
-
+        
         // Optionally, delete the temp file after processing
         fs.unlinkSync(tempFilePath);
         let language = "english";
         // Respond with your results
-        default_info = await basic_query(textOnBottle)
+        const user = null;
+        // const user = await User.findOne({
+        //     $or: [{ username: login }]
+        // });
+        let default_info = null;
+        let medicals = "";
+        if(user){
+            medicals = await user.getMedicals();
+            
+        }
+
+
+
+        if (textOnBottle === "Too many containers detected."){
+            default_info = "There's too many bottles in the image. Try taking a picture of the bottle against a background."
+            default_info = await translate(default_info,language);
+
+        }
+        else if (textOnBottle === "No containers detected.") {
+            default_info = "We don't see any bottles in the image. Try taking a closer picture."
+            default_info = await translate(default_info, language);
+
+        }
+        else{
+            if(medicals != ""){
+                let med_prompt = "The following text is the label of a medicinal bottle or product. Briefly answer the following questions:\n 1. What is this medication and what is it used for?\n 2. What should someone taking this medication be aware of?\n 3. How often should this person take this medication? 4. How may this medication affect the user based on medical notes?"
+                med_prompt = "The following is user information regarding prescription and doctor notes respectively:\n" + medicals.prescription + "\n" + medicals.notes + "\n\n" + med_prompt
+                default_info = await basic_query(textOnBottle, language = language);
+            }
+            else{
+                default_info = await basic_query(textOnBottle, language = language);
+            }
+        }
         const mp3_file = uuidv4() + '.mp3'; // Generate a unique file name
         // const mp3TempFilePath = path.join(os.tmpdir(), mp3_file); // Construct temp file path
         const mp3TempFilePath = path.join("public/", mp3_file); // Construct temp file path
