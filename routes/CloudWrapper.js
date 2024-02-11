@@ -306,21 +306,29 @@ router.post('/analyze-image', async (req, res) => {
         fs.unlinkSync(tempFilePath);
         // let language = "english";
         // Respond with your results
-        const user = null;
+        let user = null;
         // const user = await User.findOne({
         //     $or: [{ username: login }]
         // });
         let default_info = null;
         let medicals = "";
+        console.log(j_token);
         if(j_token!=""){
             try {
-                const decoded = jwt.verify(token, process.env.JWT_SECRET);
-                user = decoded.userId;
+                const decoded = jwt.verify(j_token, process.env.JWT_SECRET).userId;
+                console.log(decoded);
+                user = await User.findOne({
+                  $or: [{ username: decoded }]
+                });
                 console.log(user);
-                medicals = await user.getMedicals();
-                next();
+                console.log(user.prescription_info); 
+                console.log(user.doctor_notes);
+                medicals = {prescription : user.prescription_info, notes:user.doctor_notes};
+                // medicals = await user.getMedicals();
+                // console.log(medicals);
             } catch (error) {
-                res.status(401).json({ error: 'Invalid token' });
+                console.log(error)
+                // res.status(401).json({ error: 'Invalid token' });
             };
         };
             
@@ -339,9 +347,14 @@ router.post('/analyze-image', async (req, res) => {
         }
         else{
             if(medicals != ""){
-                let med_prompt = "The following text is the label of a medicinal bottle or product. Briefly answer the following questions:\n 1. What is this medication and what is it used for?\n 2. What should someone taking this medication be aware of?\n 3. How often should this person take this medication? 4. How may this medication affect the user based on their medical info?"
-                med_prompt = "The following is user information regarding prescription and doctor notes respectively:\n" + medicals.prescription + "\n" + medicals.notes + "\n\n" + med_prompt
+                let med_prompt = "The following information is regarding prescription and doctor notes respectively:\n" + medicals.prescription + "\n" + medicals.notes + "\n\n";
+
+                let inter = "The following text is the label of a medicinal bottle or product. " + textOnBottle+ "\nBriefly answer the following questions:\n 1. What is this medication on the label of this bottle and what is it used for?\n 2. What should someone taking this medication be aware of?\n 3. How often should this person take this medication? 4. How may this medication affect the user based on their medical info?"
+
+                med_prompt = med_prompt + inter;
+                console.log(med_prompt);
                 default_info = await basic_query(med_prompt, language = language_val);
+                console.log(default_info);  
             }
             else{
                 default_info = await basic_query(textOnBottle, language = language_val);
@@ -372,7 +385,7 @@ router.post('/analyze-image', async (req, res) => {
         }
     }
   }
-});
+);
 
 /*
 async function main(){
