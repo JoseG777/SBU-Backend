@@ -280,7 +280,7 @@ async function read_text(text, voice = { languageCode: 'en-US', ssmlGender: 'NEU
 
 // Test Call to Test API
 router.post('/analyze-image', async (req, res) => {
-    const { image: base64Image, language:language } = req.body; // Here, 'image' is the base64-encoded image data
+    const { image: base64Image, language:language_val } = req.body; // Here, 'image' is the base64-encoded image data
 
     // Convert base64 to a buffer and then to a file
     const imageBuffer = Buffer.from(base64Image, 'base64');
@@ -312,28 +312,28 @@ router.post('/analyze-image', async (req, res) => {
 
         if (textOnBottle === "Too many containers detected."){
             default_info = "There's too many bottles in the image. Try taking a picture of the bottle against a background."
-            default_info = await translate(default_info,language);
+            default_info = await translate(default_info, language_val);
 
         }
         else if (textOnBottle === "No containers detected.") {
             default_info = "We don't see any bottles in the image. Try taking a closer picture."
-            default_info = await translate(default_info, language);
+            default_info = await translate(default_info, language_val);
 
         }
         else{
             if(medicals != ""){
                 let med_prompt = "The following text is the label of a medicinal bottle or product. Briefly answer the following questions:\n 1. What is this medication and what is it used for?\n 2. What should someone taking this medication be aware of?\n 3. How often should this person take this medication? 4. How may this medication affect the user based on medical notes?"
                 med_prompt = "The following is user information regarding prescription and doctor notes respectively:\n" + medicals.prescription + "\n" + medicals.notes + "\n\n" + med_prompt
-                default_info = await basic_query(textOnBottle, language = language);
+                default_info = await basic_query(textOnBottle, language = language_val);
             }
             else{
-                default_info = await basic_query(textOnBottle, language = language);
+                default_info = await basic_query(textOnBottle, language = language_val);
             }
         }
         const mp3_file = uuidv4() + '.mp3'; // Generate a unique file name
         // const mp3TempFilePath = path.join(os.tmpdir(), mp3_file); // Construct temp file path
         const mp3TempFilePath = path.join("public/", mp3_file); // Construct temp file path
-        await read_text(default_info, voice_options[language]["f"],mp3TempFilePath); // TEST THIS FIRST
+        await read_text(default_info, voice_options[language_val]["f"],mp3TempFilePath); // TEST THIS FIRST
 
         const sound_url =  mp3_file;
         console.log(sound_url);
