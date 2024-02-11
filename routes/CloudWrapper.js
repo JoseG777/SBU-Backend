@@ -280,7 +280,7 @@ async function read_text(text, voice = { languageCode: 'en-US', ssmlGender: 'NEU
 
 // Test Call to Test API
 router.post('/analyze-image', async (req, res) => {
-    const { image: base64Image } = req.body; // Here, 'image' is the base64-encoded image data
+    const { image: base64Image, language:language } = req.body; // Here, 'image' is the base64-encoded image data
 
     // Convert base64 to a buffer and then to a file
     const imageBuffer = Buffer.from(base64Image, 'base64');
@@ -295,7 +295,7 @@ router.post('/analyze-image', async (req, res) => {
         
         // Optionally, delete the temp file after processing
         fs.unlinkSync(tempFilePath);
-        let language = "english";
+        // let language = "english";
         // Respond with your results
         const user = null;
         // const user = await User.findOne({
