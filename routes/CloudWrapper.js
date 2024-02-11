@@ -231,15 +231,28 @@ const voice_options = {
             "name": "ru-RU-Standard-A",
             "ssmlGender": "FEMALE",
             "naturalSampleRateHertz": 24000
-        },
-        "m": {
+        }
+    },
+    "vietnamese": {
+        "f": {
             "languageCode": [
-                "ru-RU"
+                "vi-VN"
             ],
-            "name": "ru-RU-Standard-B",
-            "ssmlGender": "MALE",
+            "name": "vi-VN-Neural2-A",
+            "ssmlGender": "FEMALE",
             "naturalSampleRateHertz": 24000
         }
+    },
+    "bengali": {
+        "f": {
+            "languageCode": [
+                "bn-IN"
+            ],
+            "name": "bn-IN-Standard-A",
+            "ssmlGender": "FEMALE",
+            "naturalSampleRateHertz": 24000
+        }
+
     }
 }
 
