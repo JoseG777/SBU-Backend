@@ -253,6 +253,14 @@ const voice_options = {
             "naturalSampleRateHertz": 24000
         }
 
+    },
+    "mandarin": {
+        "languageCode": [
+            "cmn-CN"
+        ],
+        "name": "cmn-CN-Wavenet-A",
+        "ssmlGender": "FEMALE",
+        "naturalSampleRateHertz": 24000
     }
 }
 
