@@ -71,7 +71,7 @@ async function basic_query(
       {
         role: "user",
         content:
-          "Speak and respond using" +
+          "Speak and respond using only +"+ language+ "+. Translate any english to "  +
           language +
           "." +
           prompt_engineering +
