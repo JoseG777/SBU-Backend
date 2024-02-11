@@ -255,12 +255,14 @@ const voice_options = {
 
     },
     "mandarin": {
-        "languageCode": [
-            "cmn-CN"
-        ],
-        "name": "cmn-CN-Wavenet-A",
-        "ssmlGender": "FEMALE",
-        "naturalSampleRateHertz": 24000
+        "f" : {
+            "languageCode": [
+                "cmn-CN"
+            ],
+            "name": "cmn-CN-Wavenet-A",
+            "ssmlGender": "FEMALE",
+            "naturalSampleRateHertz": 24000
+        }
     }
 }
 
