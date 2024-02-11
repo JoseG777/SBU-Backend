@@ -27,8 +27,8 @@ async function translate(prompt, language = "english") {
         return prompt;
     }
     const response = await openai.chat.completions.create({
-        messages: [,
-            { "role": "user", "content": "Translate the following from English to " + language + ":" + "\n" + prompt }
+        messages: [{ "role": "system", "content": "Translate the following from English to " + language + "." },
+        { "role": "user", "content": prompt }
         ],
         model: "gpt-3.5-turbo",
     });
@@ -47,10 +47,10 @@ async function translate(prompt, language = "english") {
  */
 const default_prompt = "The following is the label of a medicinal bottle or product. Briefly answer the following questions:\n 1. What is this medication and what is it used for?\n 2. What should someone taking this medication be aware of?\n 3. How often should this person take this medication?"
 async function basic_query(bottle_text, language = "english", prompt_engineering = default_prompt) {
-    let setting = "You are a medical assistant who speaks" + language + ":\n"
+
     const response = await openai.chat.completions.create({
-        messages: [,
-            { "role": "user", "content": setting + prompt_engineering + "\n" + bottle_text }
+        messages: [{ "role": "system", "content": "You are a medical assistant who speaks" + language +"." },
+                    { "role": "user", "content": prompt_engineering + "\n" + bottle_text }
         ],
         model: "gpt-3.5-turbo",
     });
