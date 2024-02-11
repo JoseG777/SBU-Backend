@@ -50,7 +50,7 @@ async function basic_query(bottle_text, language = "english", prompt_engineering
 
     const response = await openai.chat.completions.create({
         messages: [{ "role": "system", "content": "You are a medical assistant who speaks" + language +"." },
-                    { "role": "user", "content":  "Speak in" + language + "." + prompt_engineering + "\n" + bottle_text }
+                    { "role": "user", "content":  "Speak and respond using" + language + "." + prompt_engineering + "\n" + bottle_text }
         ],
         model: "gpt-3.5-turbo",
     });
