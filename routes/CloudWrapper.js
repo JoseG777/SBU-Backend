@@ -71,7 +71,9 @@ async function basic_query(
       {
         role: "user",
         content:
-          "Speak and respond using only +"+ language+ "+. Translate any english to "  +
+          "Speak and respond using only +" +
+          language +
+          "+. Translate any english to " +
           language +
           "." +
           prompt_engineering +
@@ -261,6 +263,22 @@ const voice_options = {
       naturalSampleRateHertz: 24000,
     },
   },
+  arabic: {
+    f: {
+      languageCode: ["ar-XA"],
+      name: "ar-XA-Standard-A",
+      ssmlGender: "FEMALE",
+      naturalSampleRateHertz: 24000,
+    },
+  },
+  hindi: {
+    f: {
+      languageCode: ["hi-IN"],
+      name: "hi-IN-Wavenet-A",
+      ssmlGender: "FEMALE",
+      naturalSampleRateHertz: 24000,
+    },
+  },
 };
 
 async function read_text(
@@ -288,104 +306,122 @@ async function read_text(
 // TTS AI IMPLEMENTATION ENDS HERE * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 
 // Test Call to Test API
-router.post('/analyze-image', async (req, res) => {
-    const { image: base64Image, language:language_val, jwt_token: j_token } = req.body; // Here, 'image' is the base64-encoded image data
+router.post("/analyze-image", async (req, res) => {
+  const {
+    image: base64Image,
+    language: language_val,
+    jwt_token: j_token,
+  } = req.body; // Here, 'image' is the base64-encoded image data
 
-    // Convert base64 to a buffer and then to a file
-    const imageBuffer = Buffer.from(base64Image, 'base64');
-    const tempFileName = uuidv4() + '.jpg'; // Generate a unique file name
-    const tempFilePath = path.join(os.tmpdir(), tempFileName); // Construct temp file path
+  // Convert base64 to a buffer and then to a file
+  const imageBuffer = Buffer.from(base64Image, "base64");
+  const tempFileName = uuidv4() + ".jpg"; // Generate a unique file name
+  const tempFilePath = path.join(os.tmpdir(), tempFileName); // Construct temp file path
 
-    fs.writeFileSync(tempFilePath, imageBuffer); // Write file to temp directory
+  fs.writeFileSync(tempFilePath, imageBuffer); // Write file to temp directory
 
-    try {
-        // Now use tempFilePath with your Google Vision API call
-        let textOnBottle = await bottle_text(tempFilePath); // Assuming this function is modified to use filePath
-        
-        // Optionally, delete the temp file after processing
-        fs.unlinkSync(tempFilePath);
-        // let language = "english";
-        // Respond with your results
-        let user = null;
-        // const user = await User.findOne({
-        //     $or: [{ username: login }]
-        // });
-        let default_info = null;
-        let medicals = "";
-        console.log(j_token);
-        if(j_token!=""){
-            try {
-                const decoded = jwt.verify(j_token, process.env.JWT_SECRET).userId;
-                console.log(decoded);
-                user = await User.findOne({
-                  $or: [{ username: decoded }]
-                });
-                console.log(user);
-                console.log(user.prescription_info); 
-                console.log(user.doctor_notes);
-                medicals = {prescription : user.prescription_info, notes:user.doctor_notes};
-                // medicals = await user.getMedicals();
-                // console.log(medicals);
-            } catch (error) {
-                console.log(error)
-                // res.status(401).json({ error: 'Invalid token' });
-            };
+  try {
+    // Now use tempFilePath with your Google Vision API call
+    let textOnBottle = await bottle_text(tempFilePath); // Assuming this function is modified to use filePath
+
+    // Optionally, delete the temp file after processing
+    fs.unlinkSync(tempFilePath);
+    // let language = "english";
+    // Respond with your results
+    let user = null;
+    // const user = await User.findOne({
+    //     $or: [{ username: login }]
+    // });
+    let default_info = null;
+    let medicals = "";
+    console.log(j_token);
+    if (j_token != "") {
+      try {
+        const decoded = jwt.verify(j_token, process.env.JWT_SECRET).userId;
+        console.log(decoded);
+        user = await User.findOne({
+          $or: [{ username: decoded }],
+        });
+        console.log(user);
+        console.log(user.prescription_info);
+        console.log(user.doctor_notes);
+        medicals = {
+          prescription: user.prescription_info,
+          notes: user.doctor_notes,
         };
-            
+        // medicals = await user.getMedicals();
+        // console.log(medicals);
+      } catch (error) {
+        console.log(error);
+        // res.status(401).json({ error: 'Invalid token' });
+      }
+    }
 
+    if (textOnBottle === "Too many containers detected.") {
+      default_info =
+        "There's too many bottles in the image. Try taking a picture of the bottle against a background.";
+      default_info = await translate(default_info, language_val);
+    } else if (textOnBottle === "No containers detected.") {
+      default_info =
+        "We don't see any bottles in the image. Try taking a closer picture.";
+      default_info = await translate(default_info, language_val);
+    } else {
+      if (medicals != "") {
+        let med_prompt =
+          "The following information is regarding prescription and doctor notes respectively:\n" +
+          medicals.prescription +
+          "\n" +
+          medicals.notes +
+          "\n\n";
 
+        let inter =
+          "The following text is the label of a medicinal bottle or product. " +
+          textOnBottle +
+          "\nAnswer the following questions:\n 1. What is this medication on the label of this bottle and what is it used for?\n 2. What should someone taking this medication be aware of?\n 3. How often should this person take this medication? 4. How may this medication affect the user based on their medical info?";
 
-        if (textOnBottle === "Too many containers detected."){
-            default_info = "There's too many bottles in the image. Try taking a picture of the bottle against a background."
-            default_info = await translate(default_info, language_val);
+        med_prompt = med_prompt + inter;
+        console.log(med_prompt);
+        default_info = await basic_query(med_prompt, (language = language_val));
+        console.log(default_info);
+      } else {
+        default_info = await basic_query(
+          textOnBottle,
+          (language = language_val)
+        );
+      }
+    }
+    const mp3_file = uuidv4() + ".mp3"; // Generate a unique file name
+    // const mp3TempFilePath = path.join(os.tmpdir(), mp3_file); // Construct temp file path
+    const mp3TempFilePath = path.join("public/", mp3_file); // Construct temp file path
+    await read_text(
+      default_info,
+      voice_options[language_val]["f"],
+      mp3TempFilePath
+    ); // TEST THIS FIRST
 
-        }
-        else if (textOnBottle === "No containers detected.") {
-            default_info = "We don't see any bottles in the image. Try taking a closer picture."
-            default_info = await translate(default_info, language_val);
+    const sound_url = mp3_file;
+    console.log(sound_url);
 
-        }
-        else{
-            if(medicals != ""){
-                let med_prompt = "The following information is regarding prescription and doctor notes respectively:\n" + medicals.prescription + "\n" + medicals.notes + "\n\n";
+    // fs.writeFileSync(mp3TempFilePath, imageBuffer); // Write file to temp directory
 
-                let inter = "The following text is the label of a medicinal bottle or product. " + textOnBottle+ "\nBriefly answer the following questions:\n 1. What is this medication on the label of this bottle and what is it used for?\n 2. What should someone taking this medication be aware of?\n 3. How often should this person take this medication? 4. How may this medication affect the user based on their medical info?"
+    console.log(mp3TempFilePath);
+    res.json({
+      message: "Analysis completed",
+      data: default_info,
+      sound: sound_url,
+    });
+  } catch (error) {
+    console.error("Error processing image:", error);
+    res
+      .status(500)
+      .json({ message: "Error processing image", error: error.message });
 
-                med_prompt = med_prompt + inter;
-                console.log(med_prompt);
-                default_info = await basic_query(med_prompt, language = language_val);
-                console.log(default_info);  
-            }
-            else{
-                default_info = await basic_query(textOnBottle, language = language_val);
-            }
-        }
-        const mp3_file = uuidv4() + '.mp3'; // Generate a unique file name
-        // const mp3TempFilePath = path.join(os.tmpdir(), mp3_file); // Construct temp file path
-        const mp3TempFilePath = path.join("public/", mp3_file); // Construct temp file path
-        await read_text(default_info, voice_options[language_val]["f"],mp3TempFilePath); // TEST THIS FIRST
-
-        const sound_url =  mp3_file;
-        console.log(sound_url);
-        
-
-
-        // fs.writeFileSync(mp3TempFilePath, imageBuffer); // Write file to temp directory
-
-        console.log(mp3TempFilePath)
-        res.json({ message: 'Analysis completed', data: default_info, sound: sound_url });
-
-    } catch (error) {
-        console.error('Error processing image:', error);
-        res.status(500).json({ message: 'Error processing image', error: error.message });
-
-        // Ensure temp file is deleted even on error
-        if (fs.existsSync(tempFilePath)) {
-            fs.unlinkSync(tempFilePath);
-        }
+    // Ensure temp file is deleted even on error
+    if (fs.existsSync(tempFilePath)) {
+      fs.unlinkSync(tempFilePath);
     }
   }
-);
+});
 
 /*
 async function main(){
